@@ -56,46 +56,36 @@ public class Pattern
         };
     }
 
-    private readonly Image<L8> data;
-    public int Width => data.Width;
-    public int Height => data.Height;
-    public PxType this[int x, int y] => (PxType)data[x, y].PackedValue;
+    private readonly PxType[,] _data;
+    public int Width { get; }
+    public int Height { get; }
+    public PxType this[int x, int y] => _data[y, x];
     public Vec2 PosFace { get; }
     public Vec2 PosBody { get; }
     public Dictionary<PxType, int> Error { get; } = new();
 
-    public Pattern(PxType[,] data) : this(ArrayToImage(data)) { }
+    public Pattern(Image<L8> data) : this(data.ImageToArray()) { }
 
-    public Pattern(Image<L8> data)
+    public Pattern(PxType[,] data)
     {
-        this.data = data;
+        _data = data;
+        Width = data.GetLength(1);
+        Height = data.GetLength(0);
         PosBody = FindFirstPixelOffset(PxType.Body);
         PosFace = FindFirstPixelOffset(PxType.Face);
-    }
-
-    private static Image<L8> ArrayToImage(PxType[,] data)
-    {
-        var tmpImg = new Image<L8>(data.GetLength(1), data.GetLength(0));
-        for (int y = 0; y < data.GetLength(0); ++y)
-        {
-            for (int x = 0; x < data.GetLength(1); ++x)
-            {
-                tmpImg[x, y] = new L8((byte)data[y, x]);
-            }
-        }
-        return tmpImg;
     }
 
     public List<Pattern> GenerateMirrorPatterns()
     {
         var patterns = new List<Pattern>();
+        var workImg = _data.ArrayToImage();
 
         foreach (var (rotation, flip) in
             from rm in Enum.GetValues<RotateMode>()
             from fm in Enum.GetValues<FlipMode>()
             select (rm, fm))
         {
-            var newData = data.Clone();
+            var newData = workImg.Clone();
             newData.Mutate(i => i.RotateFlip(rotation, flip));
             patterns.Add(new Pattern(newData));
         }
