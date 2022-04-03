@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>amogus?</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #original, #result {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #opacity {
+            position: fixed;
+        }
+    </style>
+    <script>
+        function setOpacity(e) {
+            document.querySelector("#result").style.opacity = e.target.value;
+        }
+    </script>
+</head>
+<body>
+    <img id="original" src="https://stuff.theasuro.de/src.png" />
+    <img id="result" src="https://stuff.theasuro.de/out3.png" />
+    <input id="opacity" type="range" min="0" max="1" step="0.01" value="1" oninput="setOpacity(event)" />
+</body>
+</html>
