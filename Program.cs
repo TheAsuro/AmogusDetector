@@ -18,6 +18,7 @@ else
 
 var targetImg = originalImg.Clone();
 targetImg.Mutate(i => i.Saturate(.08f).Contrast(.35f));
+var targetImgTransp = new Image<TPixel>(originalImg.Width, originalImg.Height, new TPixel(0, 0, 0, 0));
 
 var matcher = new MatchRule[Enum.GetValues<PxType>().Select(x => (int)x).Max() + 1];
 matcher[(int)PxType.Any] = /************/ new(0, (in MatchCtx c) => true);
@@ -66,17 +67,30 @@ foreach (var (pos, pattern) in sussyBakas)
                 || (pattern[patternX, patternY] is PxType.OptionalBody && originalImg[x, y] == bodyColor))
             {
                 targetImg[x, y] = originalImg[x, y];
+                targetImgTransp[x, y] = originalImg[x, y];
             }
         }
     }
 }
 
 Console.WriteLine($"Time: {stopwatch.Elapsed}");
-targetImg.SaveAsPng("out.png");
 
-var target3 = targetImg.Clone();
-target3.Mutate(i => i.Resize(target3.Width * 3, target3.Height * 3, KnownResamplers.NearestNeighbor));
-target3.SaveAsPng("out3.png");
+if (useLocalTestFile)
+{
+    targetImg.Mutate(i => i.Resize(targetImg.Width * 3, targetImg.Height * 3, KnownResamplers.NearestNeighbor));
+    targetImgTransp.Mutate(i => i.Resize(targetImg.Width * 3, targetImg.Height * 3, KnownResamplers.NearestNeighbor));
+}
+
+await Task.WhenAll(
+    targetImg.SaveAsPngAsync("out.png"),
+    targetImgTransp.SaveAsPngAsync("out2.png"),
+    originalImg.SaveAsPngAsync("out3.png")
+);
+
+//var target3 = targetImg.Clone();
+//target3.Mutate(i => i.Resize(target3.Width * 3, target3.Height * 3, KnownResamplers.NearestNeighbor));
+//target3.SaveAsPng("out3.png");
+
 
 public record struct Vec2(int X, int Y);
 

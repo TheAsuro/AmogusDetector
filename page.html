@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>amogus?</title>
     <style>
         body {
+            background: black;
             margin: 0;
             padding: 0;
         }
 
-        #original, #result {
+        #original,
+        #result {
             position: absolute;
             top: 0;
             left: 0;
@@ -31,22 +34,30 @@
             position: fixed;
             background-color: #eee;
             border-radius: 0 0 .3em 0;
+            display: flex;
+            align-items: center;
         }
     </style>
     <script src='https://unpkg.com/panzoom@9.4.0/dist/panzoom.min.js'></script>
+</head>
+
+<body>
+    <div id="imgContainer">
+        <img id="original" src="./out3.png" />
+        <img id="result" src="./out2.png" />
+    </div>
+    <div class="ui">
+        <span style="color:red;">Refreshes only every 5 minutes!!!</span>
+        <input id="opacity" type="range" min="0" max="1" step="0.01" value="0" oninput="setOpacity()"
+               onmousedown="pauseZoom()" onmouseup="resumeZoom()" />
+    </div>
     <script>
-        var pzInstance;
+        const imgOrig = document.querySelector("#original");
+        const imgResult = document.querySelector("#result");
+        const slider = document.querySelector("#opacity");
 
-        function setOpacity(e) {
-            document.querySelector("#result").style.opacity = e.target.value;
-        }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            var zoomSettings = {
-            };
-
-            pzInstance = panzoom(document.querySelector("#imgContainer"), zoomSettings);
-        });
+        let zoomSettings = {};
+        let pzInstance = panzoom(document.querySelector("#imgContainer"), zoomSettings);
 
         function pauseZoom() {
             pzInstance.pause();
@@ -55,15 +66,19 @@
         function resumeZoom() {
             pzInstance.resume();
         }
+
+        function setOpacity() {
+            let v = slider.value;
+            const per = 100;
+            const min = 15;
+            let vp = Math.floor(v * (per - min) + min);
+            let vpi = per - vp;
+            let filter = `grayscale(${vpi}%) contrast(${vp}%)`;
+            imgOrig.style.filter = filter;
+        }
+
+        setOpacity();
     </script>
-</head>
-<body>
-    <div id="imgContainer">
-        <img id="original" src="https://stuff.theasuro.de/src.png" />
-        <img id="result" src="https://stuff.theasuro.de/out3.png" />
-    </div>
-    <div class="ui">
-        <input id="opacity" type="range" min="0" max="1" step="0.01" value="1" oninput="setOpacity(event)" onmousedown="pauseZoom()" onmouseup="resumeZoom()" />
-    </div>
 </body>
+
 </html>

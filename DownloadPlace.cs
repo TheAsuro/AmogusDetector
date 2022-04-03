@@ -36,8 +36,8 @@ public static class DownloadPlace
         }
 
         await Send($"{{\"type\": \"connection_init\", \"payload\":{{\"Authorization\": \"Bearer {tokenFull}\"}}}}");
-        Console.WriteLine(await Receive()); // {"type":"connection_ack"}
-        Console.WriteLine(await Receive()); // {"type":"ka"}
+        //Console.WriteLine(await Receive()); // {"type":"connection_ack"}
+        //Console.WriteLine(await Receive()); // {"type":"ka"}
         //await Send("{\"id\":\"1\",\"type\":\"start\",\"payload\":{\"variables\":{\"input\":{\"channel\":{\"teamOwner\":\"AFD2022\",\"category\":\"CONFIG\"}}},\"extensions\":{},\"operationName\":\"configuration\",\"query\":\"subscription configuration($input: SubscribeInput!) {\n  subscribe(input: $input) {\n    id\n    ... on BasicMessage {\n      data {\n        __typename\n        ... on ConfigurationMessageData {\n          colorPalette {\n            colors {\n              hex\n              index\n              __typename\n            }\n            __typename\n          }\n          canvasConfigurations {\n            index\n            dx\n            dy\n            __typename\n          }\n          canvasWidth\n          canvasHeight\n          __typename\n        }\n      }\n      __typename\n    }\n    __typename\n  }\n}\n\"}}");
         //await Receive(); // subans
         for (int i = 0; i < 4; i++)
@@ -50,7 +50,9 @@ public static class DownloadPlace
         {
             var elem = await Receive();
             Console.WriteLine(elem);
-            var frame = elem.GetProperty("payload").GetProperty("data").GetProperty("subscribe").GetProperty("data").Deserialize<FrameData>();
+            FrameData frame;
+            try { frame = elem.GetProperty("payload").GetProperty("data").GetProperty("subscribe").GetProperty("data").Deserialize<FrameData>()!; }
+            catch { continue; }
             if (frame.__typename != "FullFrameMessageData")
                 continue;
             frames.Add(frame.name);
