@@ -1,4 +1,6 @@
-﻿using System.Net.WebSockets;
+﻿using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -7,7 +9,7 @@ namespace amogus;
 
 public static class DownloadPlace
 {
-    public static async Task<List<string>> Download()
+    public static async Task<Image<TPixel>> Download()
     {
         var web = new HttpClient();
         var webResponse = await web.GetStringAsync("https://new.reddit.com/");
@@ -15,13 +17,10 @@ public static class DownloadPlace
         if (!tokenMatch.Success)
             throw new Exception("Could not find access token");
         var tokenFull = tokenMatch.Groups["Token"].Value;
-        var token = tokenFull[(tokenFull.IndexOf('-'))..];
 
         using var ws = new ClientWebSocket();
         ws.Options.SetRequestHeader("Origin", "https://hot-potato.reddit.com");
         await ws.ConnectAsync(new Uri("wss://gql-realtime-2.reddit.com/query"), CancellationToken.None);
-
-
 
         var resultBuffer = new byte[1024 * 1024];
         async Task<JsonElement> Receive()
@@ -43,11 +42,12 @@ public static class DownloadPlace
         //await Receive(); // subans
         for (int i = 0; i < 4; i++)
         {
-            await Send($"{{\"id\":\"4\",\"type\":\"start\",\"payload\":{{\"variables\":{{\"input\":{{\"channel\":{{\"teamOwner\":\"AFD2022\",\"category\":\"CANVAS\",\"tag\":\"{i}\"}}}}}},\"extensions\":{{}},\"operationName\":\"replace\",\"query\":\"subscription replace($input: SubscribeInput!) {{\n  subscribe(input: $input) {{\n    id\n    ... on BasicMessage {{\n      data {{\n        __typename\n        ... on FullFrameMessageData {{\n          __typename\n          name\n          timestamp\n        }}\n        ... on DiffFrameMessageData {{\n          __typename\n          name\n          currentTimestamp\n          previousTimestamp\n        }}\n      }}\n      __typename\n    }}\n    __typename\n  }}\n}}\n\"}}}}");
+            await Send($"{{\"id\":\"4\",\"type\":\"start\",\"payload\":{{\"variables\":{{\"input\":{{\"channel\":{{\"teamOwner\":\"AFD2022\",\"category\":\"CANVAS\",\"tag\":\"{i}\"}}}}}},\"extensions\":{{}},\"operationName\":\"replace\",\"query\":\"subscription replace($input: SubscribeInput!) {{\\n  subscribe(input: $input) {{\\n    id\\n    ... on BasicMessage {{\\n      data {{\\n        __typename\\n        ... on FullFrameMessageData {{\\n          __typename\\n          name\\n          timestamp\\n        }}\\n        ... on DiffFrameMessageData {{\\n          __typename\\n          name\\n          currentTimestamp\\n          previousTimestamp\\n        }}\\n      }}\\n      __typename\\n    }}\\n    __typename\\n  }}\\n}}\\n\"}}}}");
         }
 
         var frames = new List<string>();
-        while(true) {
+        while (true)
+        {
             var elem = await Receive();
             Console.WriteLine(elem);
             var frame = elem.GetProperty("payload").GetProperty("data").GetProperty("subscribe").GetProperty("data").Deserialize<FrameData>();
@@ -58,7 +58,26 @@ public static class DownloadPlace
                 break;
         }
 
-        return frames;
+        var finalImage = new Image<TPixel>(2000, 2000);
+        foreach (var frameUrl in frames)
+        {
+            var index = int.Parse(Regex.Match(frameUrl, "-(?<index>\\d)-f-").Groups["index"].Value);
+            var stream = await web.GetStreamAsync(frameUrl);
+            using var partImg = Image.Load<TPixel>(stream);
+            finalImage.Mutate(m =>
+                m.DrawImage(partImg, index switch
+                {
+                    0 => new Point(0__0, 0__0),
+                    1 => new Point(1000, 0__0),
+                    2 => new Point(0__0, 1000),
+                    3 => new Point(1000, 1000),
+                }, 1)
+            );
+        }
+
+        await finalImage.SaveAsPngAsync("test.png");
+
+        return finalImage;
     }
 }
 

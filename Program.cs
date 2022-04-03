@@ -1,11 +1,20 @@
 ﻿using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 
-await amogus.DownloadPlace.Download();
+bool useLocalTestFile = false;
+Image<TPixel> originalImg;
 
-var originalImg = Image.Load<TPixel>("src.png");
-originalImg.Mutate(i => i.Resize(originalImg.Width / 3, originalImg.Height / 3, KnownResamplers.NearestNeighbor));
+if (useLocalTestFile)
+{
+    originalImg = Image.Load<TPixel>("src.png");
+    originalImg.Mutate(i => i.Resize(originalImg.Width / 3, originalImg.Height / 3, KnownResamplers.NearestNeighbor));
+}
+else
+{
+    originalImg = await amogus.DownloadPlace.Download();
+}
 
 var targetImg = originalImg.Clone();
 targetImg.Mutate(i => i.Saturate(.08f).Contrast(.35f));
@@ -23,10 +32,11 @@ List<Pattern> patterns = Pattern.basePatterns.SelectMany(p => p.GenerateMirrorPa
 
 var stopwatch = Stopwatch.StartNew();
 
-var sussyBakas = new List<(Vec2, Pattern)>();
-originalImg.ProcessPixelRows(originalImgCtx =>
+var sussyBakas = new ConcurrentBag<(Vec2, Pattern)>();
+
+Parallel.For(0, originalImg.Height, y =>
 {
-    for (int y = 0; y < originalImgCtx.Height; ++y)
+    originalImg.ProcessPixelRows(originalImgCtx =>
     {
         for (int x = 0; x < originalImgCtx.Width; ++x)
         {
@@ -39,7 +49,7 @@ originalImg.ProcessPixelRows(originalImgCtx =>
                 }
             }
         }
-    }
+    });
 });
 
 foreach (var (pos, pattern) in sussyBakas)
