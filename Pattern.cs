@@ -50,7 +50,7 @@ public class Pattern
                 { X, B, B, B, X },
                 { O, B, F, F, _ },
                 { O, B, B, B, X },
-                { O, B, 0, B, X },
+                { X, B, 0, B, X },
                 { _, X, _, X, _ },
             }),
         };
