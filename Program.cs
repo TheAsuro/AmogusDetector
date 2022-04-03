@@ -2,6 +2,8 @@
 using SixLabors.ImageSharp.Processing;
 using System.Diagnostics;
 
+await amogus.DownloadPlace.Download();
+
 var originalImg = Image.Load<TPixel>("src.png");
 originalImg.Mutate(i => i.Resize(originalImg.Width / 3, originalImg.Height / 3, KnownResamplers.NearestNeighbor));
 
