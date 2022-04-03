@@ -1,8 +1,7 @@
-﻿using SixLabors.ImageSharp;
+﻿global using TPixel = SixLabors.ImageSharp.PixelFormats.Rgba32;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using System.Runtime.InteropServices;
-using TPixel = SixLabors.ImageSharp.PixelFormats.Rgb24;
 
 public enum PxType : byte
 {
@@ -57,9 +56,9 @@ public class Pattern
         };
     }
 
-    private Image<L8> data;
-    public int width => data.Width;
-    public int height => data.Height;
+    private readonly Image<L8> data;
+    public int Width => data.Width;
+    public int Height => data.Height;
     public PxType this[int x, int y] => (PxType)data[x, y].PackedValue;
     public Vec2 PosFace { get; }
     public Vec2 PosBody { get; }
@@ -106,9 +105,9 @@ public class Pattern
 
     private Vec2 FindFirstPixelOffset(PxType type)
     {
-        for (int y = 0; y < height; y++)
+        for (int y = 0; y < Height; y++)
         {
-            for (int x = 0; x < width; x++)
+            for (int x = 0; x < Width; x++)
             {
                 if (this[x, y] == type)
                 {
@@ -119,59 +118,41 @@ public class Pattern
         throw new InvalidOperationException("No face found!");
     }
 
-    public bool Sus(int x, int y, Image<TPixel> image, MatcherDict matcher)
+    public bool Sus(int x, int y, PixelAccessor<TPixel> image, MatchRule[] matcher)
     {
-        if (x + this.width >= image.Width || y + this.height >= image.Height)
+        if (x + this.Width >= image.Width || y + this.Height >= image.Height)
         {
             return false;
         }
 
-        var bodyColor = image[x + PosBody.X, y + PosBody.Y];
-        var faceColor = image[x + PosFace.X, y + PosFace.Y];
+        var bodyColor = image.GetRowSpan(y + PosBody.Y)[x + PosBody.X];
+        var faceColor = image.GetRowSpan(y + PosFace.Y)[x + PosFace.X];
         if (bodyColor == faceColor)
         {
             return false;
         }
 
-        var matcherErrors = new Dictionary<PxType, int>();
+        int[]? matcherErrors = null;
 
-        bool FinalMatch(PxType pxType, in MatchCtx ctx)
+        for (int patternY = 0; patternY < this.Height; patternY++)
         {
-            if (matcher.TryGetValue(pxType, out var rule))
+            var imageRow = image.GetRowSpan(y + patternY);
+
+            for (int patternX = 0; patternX < this.Width; patternX++)
             {
-                if (!rule.Matcher(in ctx))
+                var color = imageRow[x + patternX];
+                var pxType = (int)this[patternX, patternY];
+                var rule = matcher[pxType];
+                if (rule is not null && !rule.Matcher(new MatchCtx(color, bodyColor, faceColor)))
                 {
-                    ref var error = ref CollectionsMarshal.GetValueRefOrAddDefault(matcherErrors, pxType, out _);
+                    matcherErrors ??= new int[matcher.Length];
+                    ref var error = ref matcherErrors[pxType];
                     error++;
                     if (error > rule.MaxErr)
                     {
                         return false;
                     }
                 }
-            }
-            return true;
-        }
-
-        const int backgroundSize = 0;
-        for (int patternY = -backgroundSize; patternY < this.height + backgroundSize; patternY++)
-        {
-            for (int patternX = -backgroundSize; patternX < this.width + backgroundSize; patternX++)
-            {
-                if (x + patternX < 0 || y + patternY < 0 || x + patternX >= image.Width || y + patternY >= image.Height)
-                {
-                    continue;
-                }
-                var color = image[x + patternX, y + patternY];
-                if (patternX < 0 || patternY < 0 || patternX >= this.width || patternY >= this.height)
-                {
-                    if(!FinalMatch(PxType.VirtualBorder, new MatchCtx(color, bodyColor, faceColor)))
-                        return false;
-
-                    continue;
-                }
-
-                if(!FinalMatch(this[patternX, patternY], new MatchCtx(color, bodyColor, faceColor)))
-                    return false;
             }
         }
 
